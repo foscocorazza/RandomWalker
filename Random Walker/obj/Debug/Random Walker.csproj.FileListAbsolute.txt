@@ -7,3 +7,12 @@
 \\fs4.itu.local\redirection\simc\documents\visual studio 2015\Projects\Random Walker\Random Walker\obj\Debug\Random Walker.csproj.GenerateResource.Cache
 \\fs4.itu.local\redirection\simc\documents\visual studio 2015\Projects\Random Walker\Random Walker\obj\Debug\Random Walker.exe
 \\fs4.itu.local\redirection\simc\documents\visual studio 2015\Projects\Random Walker\Random Walker\obj\Debug\Random Walker.pdb
+C:\Users\simc\Desktop\Random Walker\Random Walker\bin\Debug\Random Walker.exe.config
+C:\Users\simc\Desktop\Random Walker\Random Walker\obj\Debug\Random Walker.exe
+C:\Users\simc\Desktop\Random Walker\Random Walker\obj\Debug\Random Walker.pdb
+C:\Users\simc\Desktop\Random Walker\Random Walker\bin\Debug\Random Walker.exe
+C:\Users\simc\Desktop\Random Walker\Random Walker\bin\Debug\Random Walker.pdb
+C:\Users\simc\Desktop\Random Walker\Random Walker\obj\Debug\Random Walker.csprojResolveAssemblyReference.cache
+C:\Users\simc\Desktop\Random Walker\Random Walker\obj\Debug\Random_Walker.RandomWalkerForm.resources
+C:\Users\simc\Desktop\Random Walker\Random Walker\obj\Debug\Random_Walker.Properties.Resources.resources
+C:\Users\simc\Desktop\Random Walker\Random Walker\obj\Debug\Random Walker.csproj.GenerateResource.Cache

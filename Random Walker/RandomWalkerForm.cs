@@ -36,8 +36,11 @@ namespace Random_Walker
         bool isPlaying = false;
         int[,] occurences;
         List<Point> inputs = new List<Point>();
-
-
+        private int PercentagesFrequency;
+        private int DisableLastMoves;
+        private List<Point> lastMoves = new List<Point>();
+        private List<int> probArray;
+        private bool disabled;
 
         public RandomWalkerForm()
         {
@@ -61,8 +64,10 @@ namespace Random_Walker
 
         private void Clear()
         {
+            lastMoves.Clear();
             MoveCharacterToCenter();
             occurences = new int[gridSize, gridSize];
+            StartButton.Text = "Start";
         }
 
         private void StartButton_Click(object sender, EventArgs e)
@@ -77,7 +82,8 @@ namespace Random_Walker
 
         private void Start(bool andClear)
         {
-            if (andClear) {
+            if (andClear)
+            {
                 Clear();
                 isPlaying = false;
             }
@@ -85,13 +91,17 @@ namespace Random_Walker
             if (!isPlaying)
             {
                 aTimer.Start();
-                StartButton.Text = "Stop";
+                StartButton.Text = "Pause";
+                
             }
             else
             {
                 aTimer.Stop();
-                StartButton.Text = "Start";
+                StartButton.Text = "Resume";
             }
+
+          
+
             isPlaying = !isPlaying;
         }
 
@@ -108,7 +118,7 @@ namespace Random_Walker
                 moveCharacter();
             }
 
-            walkerPictureBox.Invalidate();
+            Redraw();
             occurences[characterPosition.X, characterPosition.Y]++;
 
             if (StepsToReset > 0)
@@ -120,27 +130,48 @@ namespace Random_Walker
 
         private int GenerateRandomStepNumber()
         {
+            if (probArray == null) GenerateRandomProbArray();
+            return probArray[(int)(rnd.NextDouble() * (probArray.Count-1))];
+        }
+
+        private void GenerateRandomProbArray()
+        {
             int MAX_ELEMENTS = 10;
             int Start = Math.Max(0, StepsToReset - MAX_ELEMENTS);
-            List<int> probArray = new List<int>();
-            for (int i = Start; i <= StepsToReset; i++) {
+            probArray = new List<int>();
+            for (int i = Start; i <= StepsToReset; i++)
+            {
                 for (int p = 0; p < Math.Pow(4, i - Start); p++)
                 {
                     probArray.Add(i);
                 }
             }
-
-            return probArray[(int)(rnd.NextDouble() * probArray.Count)];
         }
 
         private void moveCharacter()
         {
-            Point input = inputs[rnd.Next(inputs.Count)];
+            Point input;
+            do
+            {
+                input = inputs[rnd.Next(inputs.Count)];
+            } while (lastMoves.Contains(OppositeOf(input)));
+
             characterPosition.X += input.X;
             characterPosition.Y += input.Y;
 
             characterPosition = Cap(characterPosition, 0,  gridSize);
-            
+
+            lastMoves.Add(input);
+
+            if(lastMoves.Count > DisableLastMoves && lastMoves.Count > 0)
+            {
+                lastMoves.RemoveAt(0);
+            }
+        }
+
+        private Point OppositeOf(Point input)
+        {
+            return new Point(-input.X, -input.Y);
         }
 
         private static Point Cap(Point p, int min, int max)
@@ -158,10 +189,11 @@ namespace Random_Walker
 
         private void WalkerPictureBox_Paint(object sender, PaintEventArgs pe)
         {
+            if (disabled) return;
             Graphics g = pe.Graphics;
             g.Clear(bgColor);
 
-            drawOccurences(g);
+            drawOccurences(g, PercentagesFrequency);
             drawGrid(g);
             drawCharacter(g);
         }
@@ -176,6 +208,9 @@ namespace Random_Walker
 
         private void drawCharacter(Graphics g)
         {
+            System.Drawing.Drawing2D.SmoothingMode prev = g.SmoothingMode;
+            g.SmoothingMode =
+                System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             RectangleF rect = coordToPixel(characterPosition);
 
             rect.X += rect.Width / 2 - characterSize / 2;
@@ -183,13 +218,13 @@ namespace Random_Walker
             rect.Size = new Size(characterSize, characterSize);
 
             g.FillEllipse(characterBrush, rect);
+
+            g.SmoothingMode = prev;
         }
 
-        private void drawOccurences(Graphics g)
+        private void drawOccurences(Graphics g, int PercentagesFrequency)
         {
             adjustOccurArrayIfNeeded();
-           // int h = walkerPictureBox.Size.Height, w = walkerPictureBox.Size.Width;
-          //  int rowW = h / gridSize, colW = w / gridSize;
             int SUM = 0;
             int max = int.MinValue, min = int.MaxValue;
 
@@ -200,6 +235,7 @@ namespace Random_Walker
                     SUM += occurences[row, col];
                 }
 
+            labelInputsGiven.Text = SUM.ToString();
 
             // Calc Max & Min
             for (int row = 0; row < gridSize; row++)
@@ -223,7 +259,16 @@ namespace Random_Walker
                         idxColor = (int)(percentile * (cellColors.Count - 1));
                     }
                     Brush brush = new SolidBrush(cellColors[idxColor]);
-                    g.FillRectangle(brush, coordToPixel(new Point(col, row), 1, 1) );
+                    Rectangle rect = coordToPixel(new Point(col, row), 1, 1);
+                    g.FillRectangle(brush, rect );
+
+                    if(PercentagesFrequency > 0 && (row+col) % PercentagesFrequency == 0)
+                    {
+                        StringFormat format = new StringFormat();
+                        format.LineAlignment = StringAlignment.Center;
+                        format.Alignment = StringAlignment.Center;
+                        g.DrawString((val * 100.0 / SUM).ToString("0.0"), SystemFonts.DefaultFont, Brushes.Black, rect, format);
+                    }
 
                 }
 
@@ -245,6 +290,15 @@ namespace Random_Walker
             {
                 g.DrawLine(gridPen, new Point((int)col, 0), new Point((int)col, w));
             }
+
+            h--;
+            w--;
+
+            // Borders
+            g.DrawLine(gridPen, new Point(0, 0), new Point(0, w));
+            g.DrawLine(gridPen, new Point(0, 0), new Point(h, 0));
+            g.DrawLine(gridPen, new Point(h, 0), new Point(h, w));
+            g.DrawLine(gridPen, new Point(0, w), new Point(h, w));
         }
 
         private void checkBoxTopSteps_CheckedChanged(object sender, EventArgs e)
@@ -268,12 +322,20 @@ namespace Random_Walker
             characterSize = (int)numericCharaSize.Value;
             aTimer.Interval = (double)numericSpeed.Value;
             gridInvisible = checkBoxGridInvisible.Checked;
+            PercentagesFrequency = (int)numericPrcFrequency.Value;
+            DisableLastMoves = (int)numericLastMoves.Value;
+            disabled = !checkBoxDisable.Checked;
 
             adjustOccurArrayIfNeeded();
 
             generateColorGradient((int)numericColorGranularity.Value, checkBoxInverted.Checked);
 
-            walkerPictureBox.Invalidate();
+            Redraw();
+        }
+
+        private void Redraw()
+        {
+            if(!disabled) walkerPictureBox.Invalidate();
         }
 
         private void generateColorGradient(int granularity, bool inverted)
@@ -300,6 +362,7 @@ namespace Random_Walker
         private void numericTopSteps_ValueChanged(object sender, EventArgs e)
         {
             UpdateFromUI();
+            GenerateRandomProbArray();
         }
 
         private void numericGridSize_ValueChanged_1(object sender, EventArgs e)
@@ -339,14 +402,14 @@ namespace Random_Walker
             {
                 // Set form background to the selected color.
                 characterBrush = new SolidBrush(colorDialog.Color);
-                walkerPictureBox.Invalidate();
+                Redraw();
             }
         }
 
         private void buttonCenterChara_Click(object sender, EventArgs e)
         {
             MoveCharacterToCenter();
-            walkerPictureBox.Invalidate();
+            Redraw();
         }
 
         private void MoveCharacterToCenter()
@@ -362,7 +425,7 @@ namespace Random_Walker
             {
                 // Set form background to the selected color.
                 gridPen = new Pen(colorDialog.Color);
-                walkerPictureBox.Invalidate();
+                Redraw();
             }
         }
 
@@ -374,7 +437,7 @@ namespace Random_Walker
             {
                 // Set form background to the selected color.
                 bgColor = colorDialog.Color;
-                walkerPictureBox.Invalidate();
+                Redraw();
             }
         }
 
@@ -494,6 +557,26 @@ namespace Random_Walker
             UpdateFromUI();
         }
 
-        
+        private void buttonClear_Click(object sender, EventArgs e)
+        {
+            if (isPlaying) Start(false);
+            Clear();
+            Redraw();
+        }
+
+        private void numericUpDown1_ValueChanged(object sender, EventArgs e)
+        {
+            UpdateFromUI();
+        }
+
+        private void numericLastMoves_ValueChanged(object sender, EventArgs e)
+        {
+            UpdateFromUI();
+        }
+
+        private void checkBoxDisable_CheckedChanged(object sender, EventArgs e)
+        {
+            UpdateFromUI();
+        }
     }
 }
